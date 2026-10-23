@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | Grocery Churn Analytics{% endblock %}
+
+{% block content %}
+<div class="mb-4 d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+    <div>
+        <h2 class="h3 fw-bold mb-1">Customer Churn Intelligence</h2>
+        <p class="text-muted mb-0">Predictive behavioral scoring for online grocery and food retail retention.</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <a href="{{ url_for('predict') }}" class="btn btn-emerald d-flex align-items-center gap-2">
+            <i class="bi bi-person-plus"></i>
+            <span>Score New Customer</span>
+        </a>
+    </div>
+</div>
+
+<!-- Model Status Alert Banner -->
+{% if metrics.model_status.is_demo_mode %}
+<div class="alert alert-warning d-flex align-items-center gap-3 mb-4 shadow-sm" role="alert">
+    <i class="bi bi-exclamation-triangle-fill fs-4 flex-shrink-0"></i>
+    <div class="flex-grow-1">
+        <strong>Demo Mode Notice:</strong> The system is currently running using a rule-based baseline heuristic.
+        To activate the trained machine learning pipeline, execute <code>python -m ml.train</code> or view
+        <a href="{{ url_for('model_performance') }}" class="alert-link">Model Performance</a>.
+    </div>
+</div>
+{% else %}
+<div class="alert alert-success d-flex align-items-center justify-content-between mb-3 py-2 px-3 shadow-sm" role="alert">
+    <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-check-circle-fill text-success fs-5"></i>
+        <span>Active Model: <strong>{{ metrics.model_status.model_name }}</strong></span>
+        {% if metrics.model_status.metrics and metrics.model_status.metrics.selected_model %}
+            <span class="badge bg-success-subtle text-success border border-success ms-2">Production Trained</span>
+        {% endif %}
+    </div>
+    <a href="{{ url_for('model_performance') }}" class="btn btn-sm btn-outline-success">View Benchmark & Metrics</a>
+</div>
+
+<!-- Dataset Information Banner -->
+<div class="alert alert-light border border-primary-subtle d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4 shadow-sm p-3 rounded-3" role="alert">
+    <div class="d-flex align-items-start gap-3">
+        <div class="brand-icon flex-shrink-0" style="width: 38px; height: 38px; font-size: 1.1rem; background: #0284c7;">
+            <i class="bi bi-database"></i>
+        </div>
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="fw-bold text-dark">Dataset: Instacart Market Basket Analysis</span>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Kaggle Benchmark</span>
+            </div>
+            <p class="text-muted small mb-0">
+                Trained on customer grocery order histories (order sequencing, cadence, and reorder intervals) and product-level basket data (items per basket, reorder ratios).
+            </p>
+        </div>
+    </div>
+    <a href="https://www.kaggle.com/competitions/instacart-market-basket-analysis/data" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary text-nowrap d-flex align-items-center gap-1 align-self-start align-self-md-center">
+        <span>Kaggle Dataset</span>
+        <i class="bi bi-box-arrow-up-right small"></i>
+    </a>
+</div>
+{% endif %}
+
+<!-- Top KPI Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-2">
+        <div class="kpi-card">
+            <div>
+                <div class="kpi-title">Total Customers</div>
+                <div class="kpi-value" data-testid="kpi-total-customers">{{ metrics.total_customers }}</div>
+                <div class="kpi-subtext">In database</div>
+            </div>
+            <div class="kpi-icon-box total">
+                <i class="bi bi-people"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-2">
+        <div class="kpi-card">
+            <div>
+                <div class="kpi-title">High Risk</div>
+                <div class="kpi-value text-danger" data-testid="kpi-high-risk">{{ metrics.high_risk_customers }}</div>
+                <div class="kpi-subtext">Prob &gt; 65%</div>
+            </div>
+            <div class="kpi-icon-box high">
+                <i class="bi bi-shield-fill-x"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-2">
+        <div class="kpi-card">
+            <div>
+                <div class="kpi-title">Medium Risk</div>
+                <div class="kpi-value text-warning" data-testid="kpi-medium-risk">{{ metrics.medium_risk_customers }}</div>
+                <div class="kpi-subtext">Prob 35% - 65%</div>
+            </div>
+            <div class="kpi-icon-box medium">
+                <i class="bi bi-shield-fill-exclamation"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-2">
+        <div class="kpi-card">
+            <div>
+                <div class="kpi-title">Low Risk</div>
+                <div class="kpi-value text-success" data-testid="kpi-low-risk">{{ metrics.low_risk_customers }}</div>
+                <div class="kpi-subtext">Prob &lt; 35%</div>
+            </div>
+            <div class="kpi-icon-box low">
+                <i class="bi bi-shield-fill-check"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-2">
+        <div class="kpi-card">
+            <div>
+                <div class="kpi-title">Avg Churn Rate</div>
+                <div class="kpi-value" data-testid="kpi-avg-churn">{{ metrics.avg_churn_percentage }}%</div>
+                <div class="kpi-subtext">Portfolio average</div>
+            </div>
+            <div class="kpi-icon-box rate">
+                <i class="bi bi-percent"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-2">
+        <div class="kpi-card">
+            <div>
+                <div class="kpi-title">Predictions</div>
+                <div class="kpi-value" data-testid="kpi-total-predictions">{{ metrics.total_predictions }}</div>
+                <div class="kpi-subtext">Evaluations run</div>
+            </div>
+            <div class="kpi-icon-box runs">
+                <i class="bi bi-lightning-charge"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Section -->
+<div class="row g-4 mb-4">
+    <!-- Doughnut Chart: Risk Distribution -->
+    <div class="col-lg-5">
+        <div class="analytics-card h-100">
+            <div class="analytics-card-header">
+                <h3 class="analytics-card-title">
+                    <i class="bi bi-pie-chart text-emerald"></i>
+                    <span>Customer Risk Distribution</span>
+                </h3>
+                <span class="badge bg-light text-dark border">Cohort Breakdown</span>
+            </div>
+            <div class="analytics-card-body d-flex flex-column align-items-center justify-content-center" style="min-height: 280px;">
+                <div style="position: relative; width: 100%; height: 240px;">
+                    <canvas id="riskDoughnutChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bar Chart: Probability Distribution -->
+    <div class="col-lg-7">
+        <div class="analytics-card h-100">
+            <div class="analytics-card-header">
+                <h3 class="analytics-card-title">
+                    <i class="bi bi-bar-chart-fill text-emerald"></i>
+                    <span>Churn Probability Distribution</span>
+                </h3>
+                <span class="badge bg-light text-dark border">Probability Bins</span>
+            </div>
+            <div class="analytics-card-body" style="min-height: 280px;">
+                <div style="position: relative; width: 100%; height: 240px;">
+                    <canvas id="probBarChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Highest-Risk Customers Table -->
+<div class="analytics-card mb-4">
+    <div class="analytics-card-header">
+        <h3 class="analytics-card-title">
+            <i class="bi bi-exclamation-octagon-fill text-danger"></i>
+            <span>Highest-Risk Customers (Immediate Action Required)</span>
+        </h3>
+        <a href="{{ url_for('customers_list', risk='high') }}" class="btn btn-sm btn-outline-secondary">
+            View All High-Risk
+        </a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-custom">
+            <thead>
+                <tr>
+                    <th>Customer ID</th>
+                    <th>Risk Category</th>
+                    <th>Churn Probability</th>
+                    <th>Recency</th>
+                    <th>Order Interval</th>
+                    <th>Avg Basket</th>
+                    <th>Reorder Ratio</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if metrics.highest_risk_customers %}
+                    {% for c in metrics.highest_risk_customers %}
+                    <tr>
+                        <td class="fw-semibold">
+                            <a href="{{ url_for('customer_detail', customer_id=c.customer_id) }}" class="text-decoration-none">
+                                {{ c.customer_id }}
+                            </a>
+                        </td>
+                        <td>
+                            {% if c.risk_category == 'High' %}
+                                <span class="badge-risk-high"><i class="bi bi-exclamation-triangle"></i> High</span>
+                            {% elif c.risk_category == 'Medium' %}
+                                <span class="badge-risk-medium"><i class="bi bi-info-circle"></i> Medium</span>
+                            {% else %}
+                                <span class="badge-risk-low"><i class="bi bi-check-circle"></i> Low</span>
+                            {% endif %}
+                        </td>
+                        <td style="min-width: 140px;">
+                            <div class="d-flex justify-content-between align-items-center small mb-1">
+                                <span class="fw-bold">{{ (c.churn_probability * 100) | round(1) }}%</span>
+                            </div>
+                            <div class="churn-bar-container">
+                                <div class="churn-bar-fill {% if c.churn_probability >= 0.65 %}high{% elif c.churn_probability >= 0.35 %}medium{% else %}low{% endif %}"
+                                     style="width: {{ (c.churn_probability * 100) | round }}%;"></div>
+                            </div>
+                        </td>
+                        <td>{{ c.recency_days | round(1) }} days</td>
+                        <td>{{ c.avg_order_interval | round(1) }} days</td>
+                        <td>{{ c.avg_basket_size | round(1) }} items</td>
+                        <td>{{ (c.reorder_ratio * 100) | round(1) }}%</td>
+                        <td class="text-end">
+                            <a href="{{ url_for('customer_detail', customer_id=c.customer_id) }}" class="btn btn-sm btn-outline-primary">
+                                Details & Plan
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center py-4 text-muted">
+                            No scored customers found in database. <a href="{{ url_for('predict') }}">Run first prediction</a>.
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Recent Prediction Activity -->
+<div class="analytics-card">
+    <div class="analytics-card-header">
+        <h3 class="analytics-card-title">
+            <i class="bi bi-clock-history text-primary"></i>
+            <span>Recent Prediction Activity</span>
+        </h3>
+        <span class="badge bg-light text-dark border">Latest Evaluations</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-custom">
+            <thead>
+                <tr>
+                    <th>Log ID</th>
+                    <th>Customer</th>
+                    <th>Predicted Class</th>
+                    <th>Risk Category</th>
+                    <th>Churn Probability</th>
+                    <th>Model Used</th>
+                    <th>Evaluated At</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if metrics.recent_activity %}
+                    {% for p in metrics.recent_activity %}
+                    <tr>
+                        <td class="text-muted">#{{ p.id }}</td>
+                        <td class="fw-semibold">
+                            <a href="{{ url_for('customer_detail', customer_id=p.customer_id) }}" class="text-decoration-none">
+                                {{ p.customer_id }}
+                            </a>
+                        </td>
+                        <td>
+                            {% if p.predicted_class == 1 %}
+                                <span class="badge bg-danger-subtle text-danger border border-danger">Churn Likely</span>
+                            {% else %}
+                                <span class="badge bg-success-subtle text-success border border-success">Retained</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if p.risk_category == 'High' %}
+                                <span class="badge-risk-high">High</span>
+                            {% elif p.risk_category == 'Medium' %}
+                                <span class="badge-risk-medium">Medium</span>
+                            {% else %}
+                                <span class="badge-risk-low">Low</span>
+                            {% endif %}
+                        </td>
+                        <td class="fw-bold">{{ (p.churn_probability * 100) | round(1) }}%</td>
+                        <td class="text-muted small">{{ p.model_name }}</td>
+                        <td class="text-muted small">{{ p.created_at }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">No prediction history logged yet.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Pass initial metrics safely to client JS -->
+<script id="initialMetricsData" type="application/json">
+{{ metrics | tojson | safe }}
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

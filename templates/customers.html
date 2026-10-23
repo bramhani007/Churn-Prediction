@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}Customers Directory | Grocery Churn Analytics{% endblock %}
+
+{% block content %}
+<div class="mb-4 d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+    <div>
+        <h2 class="h3 fw-bold mb-1">Customer Management</h2>
+        <p class="text-muted mb-0">Browse grocery customer behavioral metrics and churn risk classifications.</p>
+    </div>
+    <a href="{{ url_for('predict') }}" class="btn btn-emerald d-flex align-items-center gap-2">
+        <i class="bi bi-plus-lg"></i>
+        <span>Score New Customer</span>
+    </a>
+</div>
+
+<!-- Search and Filter Bar -->
+<div class="analytics-card mb-4">
+    <div class="analytics-card-body p-3">
+        <form method="GET" action="{{ url_for('customers_list') }}" class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text bg-white text-muted"><i class="bi bi-search"></i></span>
+                    <input type="text" name="search" class="form-control" placeholder="Search by Customer ID..." value="{{ data.search }}">
+                </div>
+            </div>
+            <div class="col-sm-6 col-md-3">
+                <select name="risk" class="form-select">
+                    <option value="" {% if not data.risk_filter %}selected{% endif %}>All Risk Categories</option>
+                    <option value="high" {% if data.risk_filter == 'high' %}selected{% endif %}>High Risk Only</option>
+                    <option value="medium" {% if data.risk_filter == 'medium' %}selected{% endif %}>Medium Risk Only</option>
+                    <option value="low" {% if data.risk_filter == 'low' %}selected{% endif %}>Low Risk Only</option>
+                </select>
+            </div>
+            <div class="col-sm-6 col-md-3">
+                <select name="sort" class="form-select">
+                    <option value="churn_probability" {% if data.sort_by == 'churn_probability' %}selected{% endif %}>Sort: Churn Probability</option>
+                    <option value="recency_days" {% if data.sort_by == 'recency_days' %}selected{% endif %}>Sort: Recency (Days Inactive)</option>
+                    <option value="total_orders" {% if data.sort_by == 'total_orders' %}selected{% endif %}>Sort: Total Orders</option>
+                    <option value="avg_basket_size" {% if data.sort_by == 'avg_basket_size' %}selected{% endif %}>Sort: Avg Basket Size</option>
+                    <option value="reorder_ratio" {% if data.sort_by == 'reorder_ratio' %}selected{% endif %}>Sort: Reorder Ratio</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-emerald w-100">Filter</button>
+                {% if data.search or data.risk_filter %}
+                    <a href="{{ url_for('customers_list') }}" class="btn btn-outline-secondary" title="Clear Filters">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Customers Table -->
+<div class="analytics-card">
+    <div class="analytics-card-header">
+        <h3 class="analytics-card-title">
+            <i class="bi bi-people-fill text-emerald"></i>
+            <span>Customer Profiles ({{ data.total }} total)</span>
+        </h3>
+        <span class="text-muted small">Page {{ data.page }} of {{ data.total_pages }}</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-custom mb-0">
+            <thead>
+                <tr>
+                    <th>Customer ID</th>
+                    <th>Risk Category</th>
+                    <th>Churn Probability</th>
+                    <th>Total Orders</th>
+                    <th>Recency</th>
+                    <th>Order Interval</th>
+                    <th>Avg Basket</th>
+                    <th>Reorder Ratio</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if data.customers %}
+                    {% for c in data.customers %}
+                    <tr>
+                        <td class="fw-bold">
+                            <a href="{{ url_for('customer_detail', customer_id=c.customer_id) }}" class="text-decoration-none">
+                                {{ c.customer_id }}
+                            </a>
+                        </td>
+                        <td>
+                            {% if c.risk_category == 'High' %}
+                                <span class="badge-risk-high">High</span>
+                            {% elif c.risk_category == 'Medium' %}
+                                <span class="badge-risk-medium">Medium</span>
+                            {% elif c.risk_category == 'Low' %}
+                                <span class="badge-risk-low">Low</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Unscored</span>
+                            {% endif %}
+                        </td>
+                        <td style="min-width: 130px;">
+                            {% if c.churn_probability is not none %}
+                                <div class="d-flex justify-content-between small mb-1">
+                                    <span class="fw-semibold">{{ (c.churn_probability * 100) | round(1) }}%</span>
+                                </div>
+                                <div class="churn-bar-container">
+                                    <div class="churn-bar-fill {% if c.churn_probability >= 0.65 %}high{% elif c.churn_probability >= 0.35 %}medium{% else %}low{% endif %}"
+                                         style="width: {{ (c.churn_probability * 100) | round }}%;"></div>
+                                </div>
+                            {% else %}
+                                <span class="text-muted small">—</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ c.total_orders }} orders</td>
+                        <td>{{ c.recency_days | round(1) }} d</td>
+                        <td>{{ c.avg_order_interval | round(1) }} d</td>
+                        <td>{{ c.avg_basket_size | round(1) }} items</td>
+                        <td>{{ (c.reorder_ratio * 100) | round(1) }}%</td>
+                        <td class="text-end">
+                            <a href="{{ url_for('customer_detail', customer_id=c.customer_id) }}" class="btn btn-sm btn-outline-primary">
+                                View Profile
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="9" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                            No customers found matching the search criteria.
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination Footer -->
+    {% if data.total_pages > 1 %}
+    <div class="p-3 border-top d-flex justify-content-between align-items-center">
+        <span class="text-muted small">
+            Showing {{ (data.page - 1) * data.per_page + 1 }} to {{ [data.page * data.per_page, data.total]|min }} of {{ data.total }} records
+        </span>
+        <nav aria-label="Customer pagination">
+            <ul class="pagination pagination-sm mb-0">
+                <li class="page-item {% if data.page <= 1 %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('customers_list', page=data.page-1, search=data.search, risk=data.risk_filter, sort=data.sort_by, order=data.order) }}">
+                        Previous
+                    </a>
+                </li>
+                {% for p in range([1, data.page - 2]|max, [data.total_pages + 1, data.page + 3]|min) %}
+                <li class="page-item {% if p == data.page %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for('customers_list', page=p, search=data.search, risk=data.risk_filter, sort=data.sort_by, order=data.order) }}">
+                        {{ p }}
+                    </a>
+                </li>
+                {% endfor %}
+                <li class="page-item {% if data.page >= data.total_pages %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('customers_list', page=data.page+1, search=data.search, risk=data.risk_filter, sort=data.sort_by, order=data.order) }}">
+                        Next
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

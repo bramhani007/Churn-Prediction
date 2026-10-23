@@ -1,0 +1,8 @@
+{
+  "name": "Grocery Customer Churn Prediction System",
+  "description": "Machine Learning-based customer churn prediction system for an online grocery and food retail e-commerce platform using Flask, scikit-learn, and SQLite.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

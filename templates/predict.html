@@ -1,0 +1,334 @@
+{% extends "base.html" %}
+
+{% block title %}Predict Churn | Grocery Churn Analytics{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h2 class="h3 fw-bold mb-1">Score Customer Churn Risk</h2>
+    <p class="text-muted mb-0">Evaluate customer churn probability based on historical purchasing frequency, basket volume, and reorder signals.</p>
+</div>
+
+<!-- Active Model Notice -->
+<div class="alert {% if is_demo %}alert-warning{% else %}alert-info{% endif %} d-flex align-items-center justify-content-between mb-4 shadow-sm" role="alert">
+    <div class="d-flex align-items-center gap-2">
+        <i class="bi {% if is_demo %}bi-info-circle-fill text-warning{% else %}bi-cpu-fill text-primary{% endif %} fs-5"></i>
+        <span>Active Model: <strong>{{ model_name }}</strong></span>
+        {% if is_demo %}
+            <span class="badge bg-warning text-dark ms-2">Heuristic Baseline Mode</span>
+        {% else %}
+            <span class="badge bg-success text-white ms-2">Fitted ML Pipeline</span>
+        {% endif %}
+    </div>
+    <span class="text-muted small">Risk Cutoffs: Low &lt; 35% &bull; Medium 35-65% &bull; High &ge; 65%</span>
+</div>
+
+<div class="row g-4">
+    <!-- Prediction Form Column -->
+    <div class="col-lg-7">
+        <div class="analytics-card">
+            <div class="analytics-card-header">
+                <h3 class="analytics-card-title">
+                    <i class="bi bi-sliders text-emerald"></i>
+                    <span>Customer Behavioral Features</span>
+                </h3>
+                <!-- Quick Pre-fill Samples for Instant Demo Testing -->
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-allow-dismiss="true" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-lightning-charge-fill text-warning me-1"></i> Quick Test Profiles
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow">
+                        <li><h6 class="dropdown-header">Preset Scenarios</h6></li>
+                        <li><a class="dropdown-item" href="#" onclick="loadPreset('highRisk')">🚨 Inactive / High Risk (Recency 42d)</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="loadPreset('declining')">⚠️ Declining Frequency / Medium Risk (Recency 20d)</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="loadPreset('loyal')">💚 Loyal Active Regular (Recency 4d)</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="analytics-card-body">
+                <!-- Client-Side Validation Alert Container -->
+                <div id="clientValidationAlert" class="alert alert-danger d-none" role="alert"></div>
+
+                <form method="POST" action="{{ url_for('predict') }}" id="churnPredictionForm" novalidate>
+                    <!-- Customer Identification -->
+                    <div class="mb-3">
+                        <label for="customer_id" class="form-label">Customer ID <span class="text-muted font-normal">(Optional)</span></label>
+                        <input type="text" class="form-control" id="customer_id" name="customer_id" 
+                               placeholder="e.g. CUST-5821 (Leave blank to generate new ID)" 
+                               value="{{ form_data.customer_id if form_data.customer_id else '' }}">
+                        <div class="form-text">If exists in database, will record new prediction in customer history.</div>
+                    </div>
+
+                    <hr class="my-3 text-muted">
+
+                    <div class="row g-3">
+                        <!-- Recency in Days -->
+                        <div class="col-sm-6">
+                            <label for="recency_days" class="form-label">Recency (Days Inactive) <span class="text-danger">*</span></label>
+                            <input type="number" step="0.5" min="0" max="180" class="form-control" id="recency_days" name="recency_days" 
+                                   placeholder="e.g. 14.5" required
+                                   value="{{ form_data.recency_days if form_data.recency_days else '12.0' }}">
+                            <div class="invalid-feedback">Enter days since last order (0 - 180).</div>
+                            <div class="form-text">Days elapsed since customer's last grocery order.</div>
+                        </div>
+
+                        <!-- Total Orders -->
+                        <div class="col-sm-6">
+                            <label for="total_orders" class="form-label">Total Completed Orders <span class="text-danger">*</span></label>
+                            <input type="number" min="1" max="150" class="form-control" id="total_orders" name="total_orders" 
+                                   placeholder="e.g. 15" required
+                                   value="{{ form_data.total_orders if form_data.total_orders else '12' }}">
+                            <div class="invalid-feedback">Enter total orders (1 - 150).</div>
+                            <div class="form-text">Historical completed grocery baskets.</div>
+                        </div>
+
+                        <!-- Average Order Interval -->
+                        <div class="col-sm-6">
+                            <label for="avg_order_interval" class="form-label">Avg Order Interval (Days) <span class="text-danger">*</span></label>
+                            <input type="number" step="0.5" min="0" max="60" class="form-control" id="avg_order_interval" name="avg_order_interval" 
+                                   placeholder="e.g. 8.0" required
+                                   value="{{ form_data.avg_order_interval if form_data.avg_order_interval else '9.5' }}">
+                            <div class="invalid-feedback">Enter average order interval (0 - 60 days).</div>
+                            <div class="form-text">Mean cadence between repeat grocery purchases.</div>
+                        </div>
+
+                        <!-- Average Basket Size -->
+                        <div class="col-sm-6">
+                            <label for="avg_basket_size" class="form-label">Avg Basket Size (Items) <span class="text-danger">*</span></label>
+                            <input type="number" step="0.5" min="1" max="100" class="form-control" id="avg_basket_size" name="avg_basket_size" 
+                                   placeholder="e.g. 14.0" required
+                                   value="{{ form_data.avg_basket_size if form_data.avg_basket_size else '11.0' }}">
+                            <div class="invalid-feedback">Enter average items per basket (1 - 100).</div>
+                            <div class="form-text">Mean quantity of distinct products per order.</div>
+                        </div>
+
+                        <!-- Reorder Ratio -->
+                        <div class="col-sm-12">
+                            <label for="reorder_ratio" class="form-label">Reorder Ratio (0.0 to 1.0) <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="number" step="0.01" min="0.0" max="1.0" class="form-control" id="reorder_ratio" name="reorder_ratio" 
+                                       placeholder="e.g. 0.65" required
+                                       value="{{ form_data.reorder_ratio if form_data.reorder_ratio else '0.55' }}">
+                                <span class="input-group-text bg-white" id="reorderRatioPercent">55%</span>
+                            </div>
+                            <div class="invalid-feedback">Enter reorder ratio between 0.0 and 1.0.</div>
+                            <div class="form-text">Proportion of items in customer baskets that were previously ordered.</div>
+                        </div>
+
+                        <!-- Advanced/Derived Features Accordion -->
+                        <div class="col-12">
+                            <div class="accordion" id="advancedFeaturesAccordion">
+                                <div class="accordion-item border rounded">
+                                    <h2 class="accordion-header" id="headingAdv">
+                                        <button class="accordion-button collapsed py-2 text-muted" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAdv">
+                                            <i class="bi bi-gear me-2"></i> Product & Reorder Aggregates (Optional Override)
+                                        </button>
+                                    </h2>
+                                    <div id="collapseAdv" class="accordion-collapse collapse" data-bs-parent="#advancedFeaturesAccordion">
+                                        <div class="accordion-body bg-light">
+                                            <div class="row g-2">
+                                                <div class="col-sm-6">
+                                                    <label for="total_products" class="form-label small">Total Products Purchased</label>
+                                                    <input type="number" min="1" max="5000" class="form-control form-control-sm" id="total_products" name="total_products"
+                                                           value="{{ form_data.total_products if form_data.total_products else '' }}"
+                                                           placeholder="Auto-calculated from orders &times; basket">
+                                                </div>
+                                                <div class="col-sm-6">
+                                                    <label for="total_reorders" class="form-label small">Total Items Reordered</label>
+                                                    <input type="number" min="0" max="5000" class="form-control form-control-sm" id="total_reorders" name="total_reorders"
+                                                           value="{{ form_data.total_reorders if form_data.total_reorders else '' }}"
+                                                           placeholder="Auto-calculated from products &times; ratio">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 d-flex justify-content-between align-items-center">
+                        <button type="reset" class="btn btn-outline-secondary">Reset</button>
+                        <button type="submit" class="btn btn-emerald px-4 py-2 fw-bold" id="submitPredictionBtn">
+                            <i class="bi bi-cpu me-1"></i> Calculate Churn Probability
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prediction Results Column -->
+    <div class="col-lg-5">
+        {% if result and result.success %}
+            <div class="analytics-card border-emerald shadow-sm">
+                <div class="analytics-card-header bg-success-subtle">
+                    <h3 class="analytics-card-title text-success">
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span>Prediction Evaluation Result</span>
+                    </h3>
+                    <span class="badge bg-success">Scored</span>
+                </div>
+                <div class="analytics-card-body">
+                    <!-- Probability Callout -->
+                    <div class="text-center py-3">
+                        <span class="text-muted small text-uppercase fw-semibold">Predicted Churn Probability</span>
+                        <div class="display-3 fw-bold my-2 {% if result.risk_category == 'High' %}text-danger{% elif result.risk_category == 'Medium' %}text-warning{% else %}text-success{% endif %}">
+                            {{ result.churn_percentage }}%
+                        </div>
+                        
+                        <div class="mb-3">
+                            {% if result.risk_category == 'High' %}
+                                <span class="badge-risk-high fs-6 px-3 py-2"><i class="bi bi-shield-fill-x"></i> High Churn Risk</span>
+                            {% elif result.risk_category == 'Medium' %}
+                                <span class="badge-risk-medium fs-6 px-3 py-2"><i class="bi bi-shield-fill-exclamation"></i> Medium / Moderate Risk</span>
+                            {% else %}
+                                <span class="badge-risk-low fs-6 px-3 py-2"><i class="bi bi-shield-fill-check"></i> Low Risk / Highly Retained</span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Progress Bar Visual -->
+                        <div class="churn-bar-container mx-auto" style="max-width: 280px; height: 10px;">
+                            <div class="churn-bar-fill {% if result.churn_probability >= 0.65 %}high{% elif result.churn_probability >= 0.35 %}medium{% else %}low{% endif %}"
+                                 style="width: {{ result.churn_percentage }}%;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Metadata List -->
+                    <div class="border rounded p-3 bg-light mb-3">
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span class="text-muted">Target Customer:</span>
+                            <strong>
+                                <a href="{{ url_for('customer_detail', customer_id=result.customer_id) }}" class="text-decoration-none">
+                                    {{ result.customer_id }}
+                                </a>
+                            </strong>
+                        </div>
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span class="text-muted">Model Engine:</span>
+                            <span class="fw-semibold">{{ result.model_name }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span class="text-muted">Classification:</span>
+                            <span class="fw-semibold">
+                                {% if result.predicted_class == 1 %}Class 1: Churn Proxy Active{% else %}Class 0: Retained In-Cadence{% endif %}
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-between small">
+                            <span class="text-muted">DB Record:</span>
+                            <span class="text-success">Saved as Prediction #{{ result.prediction_id }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Recommended Retention Playbook -->
+                    <h5 class="fw-bold fs-6 mb-2 text-dark">Suggested Retention Playbook</h5>
+                    {% for action in result.retention_actions %}
+                        <div class="action-box">
+                            {{ action }}
+                        </div>
+                    {% endfor %}
+
+                    <div class="mt-3 text-center">
+                        <a href="{{ url_for('customer_detail', customer_id=result.customer_id) }}" class="btn btn-outline-emerald btn-sm">
+                            View Customer Profile & History
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <!-- Empty State Placeholder -->
+            <div class="analytics-card text-center py-5">
+                <div class="analytics-card-body">
+                    <div class="brand-icon mx-auto mb-3" style="width: 56px; height: 56px; font-size: 1.75rem;">
+                        <i class="bi bi-clipboard2-pulse"></i>
+                    </div>
+                    <h4 class="h5 fw-bold">Ready to Evaluate</h4>
+                    <p class="text-muted small px-4 mb-4">
+                        Fill in customer purchasing attributes or select a preset profile to predict grocery churn probability with trained ML models.
+                    </p>
+                    <div class="d-flex flex-column gap-2 text-start bg-light p-3 rounded small mx-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge-risk-low px-2 py-1">Low Risk &lt; 35%</span>
+                            <span class="text-muted">Loyal repeat grocery buyers.</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge-risk-medium px-2 py-1">Medium 35 - 65%</span>
+                            <span class="text-muted">Stretched intervals; need reorder push.</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge-risk-high px-2 py-1">High Risk &ge; 65%</span>
+                            <span class="text-muted">Overdue &gt; 30d; urgent win-back needed.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/validation.js') }}"></script>
+<script>
+    // Live percentage badge update on ratio input
+    const ratioInput = document.getElementById('reorder_ratio');
+    const ratioBadge = document.getElementById('reorderRatioPercent');
+    if (ratioInput && ratioBadge) {
+        ratioInput.addEventListener('input', () => {
+            const val = parseFloat(ratioInput.value) || 0;
+            ratioBadge.textContent = Math.round(val * 100) + '%';
+        });
+    }
+
+    // Preset scenarios for immediate testing
+    function loadPreset(type) {
+        const presets = {
+            highRisk: {
+                customer_id: 'CUST-DEMO-HIGH',
+                total_orders: 4,
+                recency_days: 42.0,
+                avg_order_interval: 22.0,
+                avg_basket_size: 5.0,
+                reorder_ratio: 0.20,
+                total_products: 20,
+                total_reorders: 4
+            },
+            declining: {
+                customer_id: 'CUST-DEMO-MED',
+                total_orders: 14,
+                recency_days: 21.0,
+                avg_order_interval: 12.0,
+                avg_basket_size: 11.0,
+                reorder_ratio: 0.48,
+                total_products: 154,
+                total_reorders: 74
+            },
+            loyal: {
+                customer_id: 'CUST-DEMO-LOYAL',
+                total_orders: 45,
+                recency_days: 4.0,
+                avg_order_interval: 7.0,
+                avg_basket_size: 18.0,
+                reorder_ratio: 0.82,
+                total_products: 810,
+                total_reorders: 664
+            }
+        };
+
+        const data = presets[type];
+        if (!data) return;
+
+        document.getElementById('customer_id').value = data.customer_id;
+        document.getElementById('total_orders').value = data.total_orders;
+        document.getElementById('recency_days').value = data.recency_days;
+        document.getElementById('avg_order_interval').value = data.avg_order_interval;
+        document.getElementById('avg_basket_size').value = data.avg_basket_size;
+        document.getElementById('reorder_ratio').value = data.reorder_ratio;
+        if (ratioBadge) ratioBadge.textContent = Math.round(data.reorder_ratio * 100) + '%';
+        
+        const totalProducts = document.getElementById('total_products');
+        const totalReorders = document.getElementById('total_reorders');
+        if (totalProducts) totalProducts.value = data.total_products;
+        if (totalReorders) totalReorders.value = data.total_reorders;
+    }
+</script>
+{% endblock %}

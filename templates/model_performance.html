@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+
+{% block title %}Model Performance & Benchmark | Grocery Churn Analytics{% endblock %}
+
+{% block content %}
+<div class="mb-4 d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+    <div>
+        <h2 class="h3 fw-bold mb-1">Machine Learning Benchmark & Evaluation</h2>
+        <p class="text-muted mb-0">Model comparison, classification metrics, confusion matrices, and Instacart feature engineering methodology.</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <a href="{{ url_for('predict') }}" class="btn btn-emerald">
+            <i class="bi bi-magic me-1"></i> Score with Model
+        </a>
+    </div>
+</div>
+
+<!-- Dataset Information Card (Prominent & Clear) -->
+<div class="analytics-card mb-4 border-primary shadow-sm">
+    <div class="analytics-card-header bg-primary-subtle d-flex align-items-center justify-content-between">
+        <h3 class="analytics-card-title text-primary">
+            <i class="bi bi-database-fill-check"></i>
+            <span>Dataset: Instacart Market Basket Analysis</span>
+        </h3>
+        <a href="https://www.kaggle.com/competitions/instacart-market-basket-analysis/data" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-primary d-flex align-items-center gap-1">
+            <span>View on Kaggle</span>
+            <i class="bi bi-box-arrow-up-right small"></i>
+        </a>
+    </div>
+    <div class="analytics-card-body">
+        <div class="row g-4 align-items-center">
+            <div class="col-lg-8">
+                <p class="mb-2 text-dark fw-medium">
+                    This system is architected around the official <strong>Instacart Market Basket Analysis</strong> dataset.
+                </p>
+                <p class="text-muted small mb-3">
+                    The dataset contains rich, real-world customer order histories and product-level basket information from over 200,000 anonymized Instacart users across more than 3 million grocery orders:
+                </p>
+                <div class="row g-2 mb-3">
+                    <div class="col-sm-6">
+                        <div class="p-2 border rounded bg-light small">
+                            <strong class="text-dark d-block"><i class="bi bi-basket text-success me-1"></i> Customer Order Histories</strong>
+                            <span class="text-muted">Sequenced orders (<code>order_number</code>), cadence (<code>days_since_prior_order</code>), and shopping times (<code>order_dow</code>, <code>order_hour_of_day</code>).</span>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="p-2 border rounded bg-light small">
+                            <strong class="text-dark d-block"><i class="bi bi-tags text-primary me-1"></i> Product-Level Basket Data</strong>
+                            <span class="text-muted">Per-order basket items, add-to-cart sequences, department/aisle classifications, and repeat reorder indicators (<code>reordered</code>).</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap gap-2 align-items-center text-muted small">
+                    <span class="badge bg-secondary-subtle text-secondary border">Kaggle Competition Source</span>
+                    <span>Direct Link: <a href="https://www.kaggle.com/competitions/instacart-market-basket-analysis/data" target="_blank" rel="noopener noreferrer" class="text-decoration-underline text-primary">kaggle.com/competitions/instacart-market-basket-analysis/data</a></span>
+                </div>
+            </div>
+            <div class="col-lg-4 border-start-lg ps-lg-4">
+                <div class="bg-light p-3 rounded border">
+                    <h6 class="fw-bold mb-2 small text-dark"><i class="bi bi-download text-emerald me-1"></i> Raw Files Required</h6>
+                    <ul class="list-unstyled small text-muted mb-3">
+                        <li class="mb-1"><i class="bi bi-filetype-csv text-danger me-1"></i> <code>data/raw/orders.csv</code></li>
+                        <li class="mb-1"><i class="bi bi-filetype-csv text-danger me-1"></i> <code>data/raw/order_products__prior.csv</code></li>
+                    </ul>
+                    <code class="d-block p-2 bg-dark text-white rounded font-monospace small" style="font-size: 0.75rem;">python -m ml.prepare_instacart</code>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Current Status Banner -->
+{% if is_demo %}
+<div class="alert alert-warning d-flex align-items-center gap-3 mb-4 shadow-sm" role="alert">
+    <i class="bi bi-exclamation-triangle-fill fs-3 flex-shrink-0"></i>
+    <div>
+        <h5 class="alert-heading h6 fw-bold mb-1">Model Pipeline Not Yet Fitted Locally</h5>
+        <p class="mb-2 small">
+            The app is currently falling back to transparent baseline heuristics. Run the reproducible training pipeline in your terminal:
+        </p>
+        <code class="d-block p-2 bg-white rounded border text-dark font-monospace small">python -m ml.train --input data/processed/customer_training.csv</code>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-success d-flex align-items-center justify-content-between mb-4 shadow-sm" role="alert">
+    <div class="d-flex align-items-center gap-3">
+        <i class="bi bi-check-circle-fill text-success fs-3"></i>
+        <div>
+            <h5 class="alert-heading h6 fw-bold mb-0">Selected Production Model: {{ model_name }}</h5>
+            <span class="text-muted small">
+                Criterion: <strong>{{ metrics.selection_metric if metrics else 'ROC-AUC Optimization' }}</strong> &bull;
+                Trained on {{ metrics.train_samples if metrics else 'sample' }} customer records
+            </span>
+        </div>
+    </div>
+    <span class="badge bg-success px-3 py-2 fs-6">Fitted & Active</span>
+</div>
+{% endif %}
+
+<!-- Model Comparison Table -->
+<div class="analytics-card mb-4">
+    <div class="analytics-card-header">
+        <h3 class="analytics-card-title">
+            <i class="bi bi-trophy-fill text-warning"></i>
+            <span>Algorithm Performance Comparison</span>
+        </h3>
+        <span class="badge bg-light text-dark border">Test Set Evaluation</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-custom mb-0">
+            <thead>
+                <tr>
+                    <th>Model Architecture</th>
+                    <th>ROC-AUC</th>
+                    <th>F1-Score</th>
+                    <th>Precision</th>
+                    <th>Recall</th>
+                    <th>Accuracy</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if metrics and metrics.models %}
+                    {% for m in metrics.models %}
+                    <tr class="{% if m.is_selected %}table-success bg-opacity-25{% endif %}">
+                        <td class="fw-bold">
+                            {{ m.model_name }}
+                            {% if m.is_selected %}
+                                <span class="badge bg-success ms-2"><i class="bi bi-check2"></i> Selected Optimal</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <strong class="{% if m.roc_auc >= 0.80 %}text-success{% elif m.roc_auc >= 0.70 %}text-primary{% else %}text-muted{% endif %}">
+                                {{ "%.4f" | format(m.roc_auc) }}
+                            </strong>
+                        </td>
+                        <td class="fw-semibold">{{ "%.4f" | format(m.f1_score) }}</td>
+                        <td>{{ "%.4f" | format(m.precision) }}</td>
+                        <td>{{ "%.4f" | format(m.recall) }}</td>
+                        <td>{{ "%.4f" | format(m.accuracy) }}</td>
+                        <td>
+                            {% if m.is_selected %}
+                                <span class="badge bg-success">Active in Production</span>
+                            {% else %}
+                                <span class="badge bg-light text-muted border">Evaluated</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">
+                            No evaluation metrics found on disk. Run <code>python -m ml.train</code> to generate benchmark.
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Confusion Matrices Breakdown (Side-by-Side for Evaluated Models) -->
+{% if metrics and metrics.models %}
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        <div class="analytics-card">
+            <div class="analytics-card-header">
+                <h3 class="analytics-card-title">
+                    <i class="bi bi-grid-3x3-gap-fill text-primary"></i>
+                    <span>Confusion Matrix Breakdown (Evaluation Set)</span>
+                </h3>
+                <span class="text-muted small">True vs. Predicted Churn</span>
+            </div>
+            <div class="analytics-card-body">
+                <div class="row g-4">
+                    {% for m in metrics.models %}
+                    <div class="col-md-6">
+                        <div class="border rounded p-3 text-center {% if m.is_selected %}border-success shadow-sm{% endif %}">
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <h6 class="fw-bold mb-0 text-dark">{{ m.model_name }}</h6>
+                                {% if m.is_selected %}
+                                    <span class="badge bg-success">Optimal Model</span>
+                                {% endif %}
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-sm small mb-2 text-center" style="font-size: 0.85rem;">
+                                    <thead class="bg-light">
+                                        <tr>
+                                            <th></th>
+                                            <th>Pred Retained</th>
+                                            <th>Pred Churn</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <th class="bg-light">True Retained</th>
+                                            <td class="bg-light text-dark fw-bold">{{ m.confusion_matrix.true_negatives }}</td>
+                                            <td class="text-danger">{{ m.confusion_matrix.false_positives }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th class="bg-light">True Churn</th>
+                                            <td class="text-warning">{{ m.confusion_matrix.false_negatives }}</td>
+                                            <td class="bg-success text-white fw-bold">{{ m.confusion_matrix.true_positives }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="text-muted small mt-2">
+                                ROC-AUC: <strong>{{ "%.4f" | format(m.roc_auc) }}</strong> &bull; Recall: <strong>{{ "%.2f%%" | format(m.recall * 100) }}</strong> &bull; Precision: <strong>{{ "%.2f%%" | format(m.precision * 100) }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Methodology & Leakage Prevention Card -->
+<div class="analytics-card mb-4">
+    <div class="analytics-card-header">
+        <h3 class="analytics-card-title">
+            <i class="bi bi-journal-code text-emerald"></i>
+            <span>Instacart Dataset Methodology & Leakage Prevention</span>
+        </h3>
+    </div>
+    <div class="analytics-card-body">
+        <div class="row g-4">
+            <div class="col-md-6">
+                <h5 class="h6 fw-bold text-dark mb-2"><i class="bi bi-shield-check text-success me-1"></i> Data Leakage Prevention</h5>
+                <p class="small text-muted mb-2">
+                    In grocery retail, predictive churn models must never observe orders placed after the decision point.
+                    Our pipeline strictly partitions each customer's order history:
+                </p>
+                <ul class="small text-muted ps-3 mb-3">
+                    <li><strong>Observation Cutoff:</strong> Features (recency, interval, reorder ratio, basket size) are computed exclusively on orders $1$ to $N-1$.</li>
+                    <li><strong>Evaluation Window:</strong> Target churn proxy is determined on order $N$.</li>
+                    <li><strong>Temporal Validity:</strong> Feature statistics never include subsequent order timestamps, items, or intervals.</li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <h5 class="h6 fw-bold text-dark mb-2"><i class="bi bi-cart-x text-danger me-1"></i> Instacart Data Constraints Respected</h5>
+                <p class="small text-muted mb-2">
+                    Unlike standard retail datasets, the Instacart Market Basket dataset has specific limitations:
+                </p>
+                <ul class="small text-muted ps-3 mb-0">
+                    <li><strong>No Ready-Made Churn Label:</strong> Instacart only tracks order baskets. We define churn as inactivity $\ge 30$ days (the Instacart order interval ceiling).</li>
+                    <li><strong>No Price Data:</strong> Instacart does not provide monetary pricing. We strictly avoid fabricating "Average Order Value" or revenues.</li>
+                    <li><strong>No Calendar Timestamps:</strong> Temporal sequence is governed by <code>order_number</code> and <code>days_since_prior_order</code>.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recorded Training Runs in SQLite -->
+<div class="analytics-card">
+    <div class="analytics-card-header">
+        <h3 class="analytics-card-title">
+            <i class="bi bi-database text-primary"></i>
+            <span>Database Audit: Model Training Runs</span>
+        </h3>
+        <span class="badge bg-light text-dark border">SQLite Persistent Records</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-custom mb-0">
+            <thead>
+                <tr>
+                    <th>Run ID</th>
+                    <th>Timestamp</th>
+                    <th>Model Selected</th>
+                    <th>Best Metric</th>
+                    <th>Train Records</th>
+                    <th>Test Records</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if training_runs %}
+                    {% for r in training_runs %}
+                    <tr>
+                        <td class="text-muted">#{{ r.id }}</td>
+                        <td>{{ r.run_timestamp }}</td>
+                        <td class="fw-bold">{{ r.model_name }}</td>
+                        <td><span class="badge bg-success-subtle text-success">{{ r.best_metric }}</span></td>
+                        <td>{{ r.train_size }}</td>
+                        <td>{{ r.test_size }}</td>
+                        <td class="text-muted small">{{ r.notes }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">
+                            No training runs recorded in database yet. Run <code>python -m ml.train</code>.
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

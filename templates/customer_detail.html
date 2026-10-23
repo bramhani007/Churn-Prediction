@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+
+{% block title %}Customer {{ customer.customer_id }} | Grocery Churn Analytics{% endblock %}
+
+{% block content %}
+<div class="mb-4 d-flex justify-content-between align-items-center">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{{ url_for('customers_list') }}">Customers</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{{ customer.customer_id }}</li>
+            </ol>
+        </nav>
+        <h2 class="h3 fw-bold mb-0">Customer Profile: {{ customer.customer_id }}</h2>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('predict') }}?customer_id={{ customer.customer_id }}&total_orders={{ customer.total_orders }}&recency_days={{ customer.recency_days }}&avg_order_interval={{ customer.avg_order_interval }}&avg_basket_size={{ customer.avg_basket_size }}&reorder_ratio={{ customer.reorder_ratio }}&total_products={{ customer.total_products }}&total_reorders={{ customer.total_reorders }}" class="btn btn-emerald">
+            <i class="bi bi-arrow-repeat me-1"></i> Re-score Customer
+        </a>
+        <a href="{{ url_for('customers_list') }}" class="btn btn-outline-secondary">Back to List</a>
+    </div>
+</div>
+
+<!-- Customer Behavioral Metric Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="kpi-card">
+            <div>
+                <div class="kpi-title">Recency Inactive</div>
+                <div class="kpi-value">{{ customer.recency_days | round(1) }} <small class="fs-6 text-muted">days</small></div>
+                <div class="kpi-subtext">Since last grocery order</div>
+            </div>
+            <div class="kpi-icon-box {% if customer.recency_days > 25 %}high{% elif customer.recency_days > 14 %}medium{% else %}low{% endif %}">
+                <i class="bi bi-calendar-event"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="kpi-card">
+            <div>
+                <div class="kpi-title">Total Lifetime Orders</div>
+                <div class="kpi-value">{{ customer.total_orders }}</div>
+                <div class="kpi-subtext">Completed baskets</div>
+            </div>
+            <div class="kpi-icon-box total">
+                <i class="bi bi-bag-check"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="kpi-card">
+            <div>
+                <div class="kpi-title">Avg Order Interval</div>
+                <div class="kpi-value">{{ customer.avg_order_interval | round(1) }} <small class="fs-6 text-muted">days</small></div>
+                <div class="kpi-subtext">Typical purchase cadence</div>
+            </div>
+            <div class="kpi-icon-box rate">
+                <i class="bi bi-hourglass-split"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="kpi-card">
+            <div>
+                <div class="kpi-title">Reorder Loyalty Ratio</div>
+                <div class="kpi-value">{{ (customer.reorder_ratio * 100) | round(1) }}%</div>
+                <div class="kpi-subtext">{{ customer.total_reorders }} / {{ customer.total_products }} items</div>
+            </div>
+            <div class="kpi-icon-box low">
+                <i class="bi bi-arrow-repeat"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Latest Risk Evaluation and Recommended Retention Actions -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-5">
+        <div class="analytics-card h-100">
+            <div class="analytics-card-header">
+                <h3 class="analytics-card-title">
+                    <i class="bi bi-shield-shaded text-emerald"></i>
+                    <span>Latest Churn Risk Assessment</span>
+                </h3>
+            </div>
+            <div class="analytics-card-body">
+                {% if latest_prediction %}
+                    <div class="text-center py-3">
+                        <div class="display-4 fw-bold {% if latest_prediction.risk_category == 'High' %}text-danger{% elif latest_prediction.risk_category == 'Medium' %}text-warning{% else %}text-success{% endif %}">
+                            {{ (latest_prediction.churn_probability * 100) | round(1) }}%
+                        </div>
+                        <div class="mb-3">
+                            {% if latest_prediction.risk_category == 'High' %}
+                                <span class="badge-risk-high fs-6"><i class="bi bi-exclamation-triangle-fill"></i> High Risk of Churn</span>
+                            {% elif latest_prediction.risk_category == 'Medium' %}
+                                <span class="badge-risk-medium fs-6"><i class="bi bi-info-circle-fill"></i> Medium Risk / At-Risk</span>
+                            {% else %}
+                                <span class="badge-risk-low fs-6"><i class="bi bi-check-circle-fill"></i> Low Risk / Engaged</span>
+                            {% endif %}
+                        </div>
+                        <div class="text-muted small">
+                            Model: <strong>{{ latest_prediction.model_name }}</strong> &bull; Scored on {{ latest_prediction.created_at }}
+                        </div>
+                    </div>
+
+                    <div class="border-top pt-3 mt-2">
+                        <div class="d-flex justify-content-between text-muted small mb-2">
+                            <span>Predicted Outcome:</span>
+                            <strong class="text-dark">
+                                {% if latest_prediction.predicted_class == 1 %}Likely to Churn (Inactivity Window){% else %}Active / Retained Customer{% endif %}
+                            </strong>
+                        </div>
+                        <div class="d-flex justify-content-between text-muted small mb-2">
+                            <span>Avg Basket Size:</span>
+                            <strong class="text-dark">{{ customer.avg_basket_size | round(1) }} grocery items</strong>
+                        </div>
+                        <div class="d-flex justify-content-between text-muted small">
+                            <span>Cadence Ratio:</span>
+                            <strong class="text-dark">
+                                {{ (customer.recency_days / [customer.avg_order_interval, 1.0]|max) | round(2) }}x historical cycle
+                            </strong>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4 text-muted">
+                        <p>No churn prediction has been evaluated for this customer yet.</p>
+                        <a href="{{ url_for('predict') }}?customer_id={{ customer.customer_id }}" class="btn btn-emerald btn-sm">Score Now</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Suggested Retention Actions -->
+    <div class="col-lg-7">
+        <div class="analytics-card h-100">
+            <div class="analytics-card-header">
+                <h3 class="analytics-card-title">
+                    <i class="bi bi-lightbulb-fill text-warning"></i>
+                    <span>Recommended Retention Playbook</span>
+                </h3>
+                <span class="badge bg-light text-dark border">Automated Playbook</span>
+            </div>
+            <div class="analytics-card-body">
+                {% if latest_prediction and latest_prediction.retention_actions %}
+                    <p class="text-muted small mb-3">
+                        Based on customer purchasing cadence (recency {{ customer.recency_days | round(1) }}d vs avg {{ customer.avg_order_interval | round(1) }}d) and reorder loyalty ratio ({{ (customer.reorder_ratio * 100) | round(1) }}%):
+                    </p>
+                    {# Render JSON actions safely #}
+                    {% set actions_list = latest_prediction.retention_actions | from_json if latest_prediction.retention_actions is string else latest_prediction.retention_actions %}
+                    {% for action in actions_list %}
+                        <div class="action-box">
+                            <i class="bi bi-check2-circle me-1"></i> {{ action }}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">Run a churn prediction to view custom grocery retention strategies.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Full Prediction History Table -->
+<div class="analytics-card">
+    <div class="analytics-card-header">
+        <h3 class="analytics-card-title">
+            <i class="bi bi-clock-history text-emerald"></i>
+            <span>Historical Prediction Evaluations</span>
+        </h3>
+        <span class="text-muted small">{{ predictions | length }} total evaluations</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-custom mb-0">
+            <thead>
+                <tr>
+                    <th>Evaluation ID</th>
+                    <th>Risk Category</th>
+                    <th>Churn Probability</th>
+                    <th>Classification</th>
+                    <th>Model Engine</th>
+                    <th>Evaluated At</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if predictions %}
+                    {% for p in predictions %}
+                    <tr>
+                        <td class="text-muted">#{{ p.id }}</td>
+                        <td>
+                            {% if p.risk_category == 'High' %}
+                                <span class="badge-risk-high">High</span>
+                            {% elif p.risk_category == 'Medium' %}
+                                <span class="badge-risk-medium">Medium</span>
+                            {% else %}
+                                <span class="badge-risk-low">Low</span>
+                            {% endif %}
+                        </td>
+                        <td class="fw-bold">{{ (p.churn_probability * 100) | round(1) }}%</td>
+                        <td>
+                            {% if p.predicted_class == 1 %}
+                                <span class="badge bg-danger-subtle text-danger border border-danger">Churn Likely</span>
+                            {% else %}
+                                <span class="badge bg-success-subtle text-success border border-success">Retained</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-muted small">{{ p.model_name }}</td>
+                        <td class="text-muted small">{{ p.created_at }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">No prior predictions recorded.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

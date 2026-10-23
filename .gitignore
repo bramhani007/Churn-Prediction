@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+
+# Environment and secrets
+.env
+*.env.local
+
+# Database and data
+*.db
+*.sqlite3
+data/raw/
+data/processed/*.csv
+!data/processed/.gitkeep
+!data/raw/.gitkeep
+
+# Model artifacts (large joblib binaries)
+models/*.joblib
+!models/.gitkeep
+
+# Testing and coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node & IDE
+node_modules/
+dist/
+.DS_Store
+.idea/
+.vscode/
+.playwright-cli/
