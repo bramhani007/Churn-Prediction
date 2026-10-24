@@ -90,18 +90,17 @@
             </header>
 
             <!-- Flash Notifications -->
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    <div class="px-4 pt-3">
-                        {% for category, message in messages %}
-                            <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
-                                {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-            {% endwith %}
+            {% set messages = get_flashed_messages(with_categories=true) %}
+            {% if messages and messages.length > 0 %}
+                <div class="px-4 pt-3">
+                    {% for item in messages %}
+                        <div class="alert alert-{{ item[0] }} alert-dismissible fade show shadow-sm" role="alert">
+                            {{ item[1] }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
 
             <!-- Error fallback or Content Body -->
             <main class="content-body">
