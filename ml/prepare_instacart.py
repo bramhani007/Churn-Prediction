@@ -39,7 +39,7 @@ def process_instacart_data(
     if not orders_file.exists():
         raise FileNotFoundError(
             f"Orders file not found at {orders_file}. Please download the Instacart dataset "
-            "from Kaggle (https://www.kaggle.com/competitions/instacart-market-basket-analysis/data) "
+            "from Kaggle (https://www.kaggle.com/c/instacart-market-basket-analysis or https://www.kaggle.com/datasets/psparks/instacart-market-basket-analysis) "
             f"and place orders.csv into {data_dir}."
         )
 

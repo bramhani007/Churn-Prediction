@@ -22,10 +22,16 @@
             <i class="bi bi-database-fill-check"></i>
             <span>Dataset: Instacart Market Basket Analysis</span>
         </h3>
-        <a href="https://www.kaggle.com/competitions/instacart-market-basket-analysis/data" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-primary d-flex align-items-center gap-1">
-            <span>View on Kaggle</span>
-            <i class="bi bi-box-arrow-up-right small"></i>
-        </a>
+        <div class="d-flex align-items-center gap-2">
+            <a href="https://www.kaggle.com/datasets/psparks/instacart-market-basket-analysis" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1">
+                <span>Kaggle Competition</span>
+                <i class="bi bi-box-arrow-up-right small"></i>
+            </a>
+            <a href="https://www.kaggle.com/datasets/psparks/instacart-market-basket-analysis" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-primary d-flex align-items-center gap-1">
+                <i class="bi bi-download small"></i>
+                <span>Download CSV Dataset</span>
+            </a>
+        </div>
     </div>
     <div class="analytics-card-body">
         <div class="row g-4 align-items-center">
@@ -51,8 +57,8 @@
                     </div>
                 </div>
                 <div class="d-flex flex-wrap gap-2 align-items-center text-muted small">
-                    <span class="badge bg-secondary-subtle text-secondary border">Kaggle Competition Source</span>
-                    <span>Direct Link: <a href="https://www.kaggle.com/competitions/instacart-market-basket-analysis/data" target="_blank" rel="noopener noreferrer" class="text-decoration-underline text-primary">kaggle.com/competitions/instacart-market-basket-analysis/data</a></span>
+                    <span class="badge bg-secondary-subtle text-secondary border">Kaggle Official Source</span>
+                    <span>Dataset & Competition: <a href="https://www.kaggle.com/datasets/psparks/instacart-market-basket-analysis" target="_blank" rel="noopener noreferrer" class="text-decoration-underline text-primary">kaggle.com/datasets/psparks/instacart-market-basket-analysis</a></span>
                 </div>
             </div>
             <div class="col-lg-4 border-start-lg ps-lg-4">
@@ -218,38 +224,154 @@
 </div>
 {% endif %}
 
-<!-- Methodology & Leakage Prevention Card -->
+<!-- Dataset Architecture & Methodology Card -->
 <div class="analytics-card mb-4">
-    <div class="analytics-card-header">
+    <div class="analytics-card-header d-flex align-items-center justify-content-between">
         <h3 class="analytics-card-title">
-            <i class="bi bi-journal-code text-emerald"></i>
-            <span>Instacart Dataset Methodology & Leakage Prevention</span>
+            <i class="bi bi-database-gear text-primary"></i>
+            <span>Instacart Dataset Architecture & Key Entities</span>
         </h3>
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">3.4M+ Orders &bull; 206K Shoppers</span>
     </div>
     <div class="analytics-card-body">
-        <div class="row g-4">
-            <div class="col-md-6">
-                <h5 class="h6 fw-bold text-dark mb-2"><i class="bi bi-shield-check text-success me-1"></i> Data Leakage Prevention</h5>
-                <p class="small text-muted mb-2">
-                    In grocery retail, predictive churn models must never observe orders placed after the decision point.
-                    Our pipeline strictly partitions each customer's order history:
-                </p>
-                <ul class="small text-muted ps-3 mb-3">
-                    <li><strong>Observation Cutoff:</strong> Features (recency, interval, reorder ratio, basket size) are computed exclusively on orders $1$ to $N-1$.</li>
-                    <li><strong>Evaluation Window:</strong> Target churn proxy is determined on order $N$.</li>
-                    <li><strong>Temporal Validity:</strong> Feature statistics never include subsequent order timestamps, items, or intervals.</li>
-                </ul>
+        <h5 class="h6 fw-bold text-dark mb-3">
+            <i class="bi bi-table text-primary me-1"></i> Relational Tables &amp; Schema Entities
+        </h5>
+        <div class="row g-3">
+            <!-- Table 1: orders.csv -->
+            <div class="col-lg-4">
+                <div class="p-3 bg-light rounded border h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <strong class="text-dark"><i class="bi bi-file-earmark-spreadsheet text-danger me-1"></i> orders.csv</strong>
+                            <span class="badge bg-secondary-subtle text-secondary">3,421,083 rows</span>
+                        </div>
+                        <p class="text-muted small mb-3">
+                            Defines each customer's sequential timeline. Records <code>order_id</code>, <code>user_id</code>, <code>order_number</code>, <code>order_dow</code> (day of week), <code>order_hour_of_day</code>, and <code>days_since_prior_order</code>.
+                        </p>
+                    </div>
+                    <div class="d-flex flex-wrap gap-1">
+                        <span class="schema-table-tag">order_id [PK]</span>
+                        <span class="schema-table-tag">user_id [FK]</span>
+                        <span class="schema-table-tag">order_number</span>
+                        <span class="schema-table-tag">days_since_prior_order [0-30]</span>
+                        <span class="schema-table-tag">order_dow [0-6]</span>
+                    </div>
+                </div>
             </div>
-            <div class="col-md-6">
-                <h5 class="h6 fw-bold text-dark mb-2"><i class="bi bi-cart-x text-danger me-1"></i> Instacart Data Constraints Respected</h5>
-                <p class="small text-muted mb-2">
-                    Unlike standard retail datasets, the Instacart Market Basket dataset has specific limitations:
-                </p>
-                <ul class="small text-muted ps-3 mb-0">
-                    <li><strong>No Ready-Made Churn Label:</strong> Instacart only tracks order baskets. We define churn as inactivity $\ge 30$ days (the Instacart order interval ceiling).</li>
-                    <li><strong>No Price Data:</strong> Instacart does not provide monetary pricing. We strictly avoid fabricating "Average Order Value" or revenues.</li>
-                    <li><strong>No Calendar Timestamps:</strong> Temporal sequence is governed by <code>order_number</code> and <code>days_since_prior_order</code>.</li>
-                </ul>
+
+            <!-- Table 2: order_products__prior.csv -->
+            <div class="col-lg-4">
+                <div class="p-3 bg-light rounded border h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <strong class="text-dark"><i class="bi bi-file-earmark-spreadsheet text-danger me-1"></i> order_products__prior.csv</strong>
+                            <span class="badge bg-secondary-subtle text-secondary">32,434,489 rows</span>
+                        </div>
+                        <p class="text-muted small mb-3">
+                            Basket item breakdown for historical orders. Captures basket depth (total items), add-to-cart position, and the critical <code>reordered</code> flag (1 if purchased previously, 0 if new discovery).
+                        </p>
+                    </div>
+                    <div class="d-flex flex-wrap gap-1">
+                        <span class="schema-table-tag">order_id [FK]</span>
+                        <span class="schema-table-tag">product_id [FK]</span>
+                        <span class="schema-table-tag">add_to_cart_order</span>
+                        <span class="schema-table-tag">reordered [0/1]</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table 3: products.csv & Taxonomy -->
+            <div class="col-lg-4">
+                <div class="p-3 bg-light rounded border h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <strong class="text-dark"><i class="bi bi-diagram-2 text-primary me-1"></i> products.csv &amp; Taxonomy</strong>
+                            <span class="badge bg-secondary-subtle text-secondary">49,688 products</span>
+                        </div>
+                        <p class="text-muted small mb-3">
+                            Categorizes grocery items across <strong>21 departments</strong> (Produce, Dairy Eggs, Beverages, Pantry, Snacks, Frozen, etc.) and <strong>134 store aisles</strong>.
+                        </p>
+                    </div>
+                    <div class="d-flex flex-wrap gap-1">
+                        <span class="schema-table-tag">product_id [PK]</span>
+                        <span class="schema-table-tag">aisle_id [FK]</span>
+                        <span class="schema-table-tag">department_id [FK]</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- End-to-End System Flow Card -->
+<div class="analytics-card mb-4">
+    <div class="analytics-card-header d-flex align-items-center justify-content-between">
+        <h3 class="analytics-card-title">
+            <i class="bi bi-diagram-3-fill text-emerald"></i>
+            <span>End-to-End ML Prediction System Flow</span>
+        </h3>
+        <span class="badge bg-success-subtle text-success border border-success-subtle">Automated Production Pipeline</span>
+    </div>
+    <div class="analytics-card-body">
+        <p class="text-muted small mb-4">
+            The end-to-end architecture connects raw Kaggle Instacart data to operational customer retention actions through five continuous phases:
+        </p>
+
+        <div class="row g-3">
+            <!-- Step 1 -->
+            <div class="col-md-6 col-xl">
+                <div class="system-flow-card">
+                    <div class="system-flow-step-badge step-1">1</div>
+                    <h6 class="fw-bold text-dark mb-2 small">Data Ingestion &amp; ETL</h6>
+                    <p class="text-muted small mb-0" style="font-size: 0.8rem; line-height: 1.45;">
+                        Ingests raw <code>orders.csv</code> and <code>order_products.csv</code>. Cleans null intervals on first orders (order 1 = 0 days) and filters for active shoppers (&ge; 3 orders).
+                    </p>
+                </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="col-md-6 col-xl">
+                <div class="system-flow-card">
+                    <div class="system-flow-step-badge step-2">2</div>
+                    <h6 class="fw-bold text-dark mb-2 small">Feature Engineering</h6>
+                    <p class="text-muted small mb-0" style="font-size: 0.8rem; line-height: 1.45;">
+                        Extracts 7 behavioral predictors: Recency days, average order interval, interval std-dev (habit volatility), reorder ratio, average basket size, and total lifetime orders.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="col-md-6 col-xl">
+                <div class="system-flow-card">
+                    <div class="system-flow-step-badge step-3">3</div>
+                    <h6 class="fw-bold text-dark mb-2 small">Temporal Splitting</h6>
+                    <p class="text-muted small mb-0" style="font-size: 0.8rem; line-height: 1.45;">
+                        Partitions histories strictly at order N-1. Holds out order N for target labeling (interval &ge; 30 days &rarr; Churn = 1). 80/20 train/test split with StandardScaler.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="col-md-6 col-xl">
+                <div class="system-flow-card">
+                    <div class="system-flow-step-badge step-4">4</div>
+                    <h6 class="fw-bold text-dark mb-2 small">Dual Model Benchmark</h6>
+                    <p class="text-muted small mb-0" style="font-size: 0.8rem; line-height: 1.45;">
+                        Trains Logistic Regression (calibrated log-odds) and Random Forest Classifier. Evaluates ROC-AUC, Recall, Precision, and Confusion Matrices to optimize retention ROI.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Step 5 -->
+            <div class="col-md-6 col-xl">
+                <div class="system-flow-card">
+                    <div class="system-flow-step-badge step-5">5</div>
+                    <h6 class="fw-bold text-dark mb-2 small">Retention Action</h6>
+                    <p class="text-muted small mb-0" style="font-size: 0.8rem; line-height: 1.45;">
+                        Scores incoming customer profiles into Risk Tiers: High (&gt;65%), Medium (35-65%), and Low (&lt;35%). Triggers automated win-back coupons and staple replenishment nudges.
+                    </p>
+                </div>
             </div>
         </div>
     </div>

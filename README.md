@@ -86,7 +86,8 @@ Artifacts generated:
 ## 4. Using Real Instacart Market Basket Data
 
 The application supports the official Kaggle Instacart Market Basket dataset:
-[https://www.kaggle.com/competitions/instacart-market-basket-analysis/data](https://www.kaggle.com/competitions/instacart-market-basket-analysis/data)
+- Competition: [https://www.kaggle.com/c/instacart-market-basket-analysis](https://www.kaggle.com/c/instacart-market-basket-analysis)
+- Direct CSV Dataset Mirror: [https://www.kaggle.com/datasets/psparks/instacart-market-basket-analysis](https://www.kaggle.com/datasets/psparks/instacart-market-basket-analysis)
 
 ### Instructions:
 1. Download `orders.csv` and `order_products__prior.csv` from Kaggle.

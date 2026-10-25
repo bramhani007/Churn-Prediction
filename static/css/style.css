@@ -147,7 +147,7 @@ body {
   border-bottom: 1px solid var(--border-color);
   padding: 0.85rem 2rem;
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   position: sticky;
   top: 0;
@@ -419,3 +419,55 @@ body {
     padding: 0.75rem 1rem;
   }
 }
+
+/* System Flow Pipeline */
+.system-flow-card {
+  position: relative;
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 1.25rem 1rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.system-flow-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.07);
+  border-color: #cbd5e1;
+}
+
+.system-flow-step-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+.system-flow-step-badge.step-1 { background-color: #e0f2fe; color: #0369a1; }
+.system-flow-step-badge.step-2 { background-color: #ede9fe; color: #6d28d9; }
+.system-flow-step-badge.step-3 { background-color: #fef3c7; color: #b45309; }
+.system-flow-step-badge.step-4 { background-color: #dcfce7; color: #15803d; }
+.system-flow-step-badge.step-5 { background-color: #ffe4e6; color: #be123c; }
+
+.schema-table-tag {
+  display: inline-block;
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  color: #334155;
+  margin-right: 0.35rem;
+  margin-bottom: 0.35rem;
+}
+
